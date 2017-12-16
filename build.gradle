@@ -1,0 +1,29 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.0'
+}
+
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+    compile "joda-time:joda-time:2.2"
+    testCompile "junit:junit:4.12"
+	compile group: 'com.jcraft', name: 'jsch', version: '0.1.52'
+	compile group: 'com.hierynomus', name: 'sshj', version: '0.19.1'
+	testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
+	
+    
+}
+
+jar {
+    baseName = 'gs-gradle'
+    version =  '0.1.0'
+}
