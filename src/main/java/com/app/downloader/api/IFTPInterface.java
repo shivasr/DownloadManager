@@ -5,10 +5,17 @@ import com.app.downloader.api.exception.DownloaderException;
 /**
  * This interface is used to download files from remote server.
  * 
- * @author shiva
+ * @author Shivakumar Ramannavar
  *
  */
 public interface IFTPInterface {
+	
+	/**
+	 * Register DownloadTracker Interface to let know the caller about events.
+	 * 
+	 * @param downloadTracker
+	 */
+	public void registerDownloadTracker(DownloadTracker downloadTracker);
 	
 	/**
 	 * Login with public key to the remote server.

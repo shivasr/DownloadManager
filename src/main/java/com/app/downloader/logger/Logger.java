@@ -1,5 +1,9 @@
 package com.app.downloader.logger;
 
+/**
+ * 
+ * @author Shivakumar Ramannavar
+ */
 public class Logger {
 	
 	public static void debug(String message) {

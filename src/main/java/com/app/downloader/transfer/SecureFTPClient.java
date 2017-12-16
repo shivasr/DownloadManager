@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
 
+import com.app.downloader.api.DownloadTracker;
 import com.app.downloader.api.IFTPInterface;
 import com.app.downloader.api.exception.DownloaderException;
 import com.app.downloader.api.impl.CustomTransferListener;
@@ -40,6 +41,11 @@ import net.schmizz.sshj.xfer.FileSystemFile;
  */
 public class SecureFTPClient implements IFTPInterface {
 
+	/**
+	 * DownloadTracker Interface
+	 */
+	DownloadTracker downloadTracker;
+	
 	/**
 	 * Host name of the SFTP Server.
 	 */
@@ -173,19 +179,13 @@ public class SecureFTPClient implements IFTPInterface {
 				}
 				
 				sftp.getFileTransfer().download(remoteFile, localFS);
-
-				RemoteHostOperations.listDirectory(session);
 			} finally {
 				sftp.close();
 			}
 		} catch (Exception e) {
-			try {
-				Logger.debug("Error while downloading. Clearing the file.", e);
-				if(path != null)
-					Files.deleteIfExists(path);
-			} catch (IOException e1) {
-				throw new DownloaderException("Unable to delete the downloaded file: " + path.getFileName());
-			}
+			Logger.debug("Error while downloading. Clearing the file.", e);
+			if(downloadTracker != null)
+				downloadTracker.downloadFailed(path);
 			throw new DownloaderException(
 					"Issue with connection to the SFTP server.", e);
 		} finally {
@@ -210,5 +210,11 @@ public class SecureFTPClient implements IFTPInterface {
 		public boolean verify(String arg0, int arg1, PublicKey arg2) {
 			return true;
 		}
+	}
+
+	@Override
+	public void registerDownloadTracker(DownloadTracker downloadTracker) {
+		this.downloadTracker = downloadTracker;
+		
 	}
 }

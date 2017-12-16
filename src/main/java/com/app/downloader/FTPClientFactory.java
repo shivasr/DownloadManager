@@ -8,7 +8,8 @@ import com.app.downloader.transfer.SecureFTPClient;
 
 /**
  * This is the factory class to create appropriate FTP client implementations based on protocol.
- * @author shiva
+ * 
+ * @author Shivakumar Ramannavar
  *
  */
 public class FTPClientFactory {

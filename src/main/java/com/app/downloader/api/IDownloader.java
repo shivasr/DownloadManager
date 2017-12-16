@@ -4,7 +4,8 @@
 package com.app.downloader.api;
 
 /**
- * @author shiva
+ * 
+ * @author Shivakumar Ramannavar
  *
  */
 public interface IDownloader {

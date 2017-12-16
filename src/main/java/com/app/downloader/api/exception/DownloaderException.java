@@ -5,9 +5,8 @@ package com.app.downloader.api.exception;
 
 /**
  * This class is used to handle application exception.
- * @author shiva
-a
- *
+ * 
+ * @author Shivakumar Ramannavar
  */
 public class DownloaderException extends Throwable {
 

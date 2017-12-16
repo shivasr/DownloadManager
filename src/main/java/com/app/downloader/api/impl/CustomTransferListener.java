@@ -12,8 +12,9 @@ import net.schmizz.sshj.common.StreamCopier.Listener;
 import net.schmizz.sshj.xfer.TransferListener;
 
 /**
- * @author shiva
- *
+ * This is a implementation of Transfer Listener.
+ * 
+ * @author Shivakumar Ramannavar
  */
 public class CustomTransferListener implements TransferListener {
 

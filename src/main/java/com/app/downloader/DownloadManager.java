@@ -6,6 +6,7 @@ package com.app.downloader;
 import com.app.downloader.api.IDownloader;
 import com.app.downloader.api.IFTPInterface;
 import com.app.downloader.api.exception.DownloaderException;
+import com.app.downloader.api.impl.DownloadTrackerImpl;
 import com.app.downloader.logger.Logger;
 
 /**
@@ -39,6 +40,7 @@ public class DownloadManager implements IDownloader {
 		String rfile = source.substring(source.indexOf('/'));
 		
 		IFTPInterface ftpInterface = FTPClientFactory.createFTPClient(protocol, host);
+		ftpInterface.registerDownloadTracker(new DownloadTrackerImpl(System.currentTimeMillis()));;
 		
 		try {
 			Logger.debugLine("Logging in ...");

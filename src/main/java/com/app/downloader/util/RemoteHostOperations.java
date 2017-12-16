@@ -17,7 +17,7 @@ import net.schmizz.sshj.transport.TransportException;
 /**
  * This class is used to execute remote host operations. 
  * 
- * @author shiva
+ * @author Shivakumar Ramannavar
  *
  */
 public class RemoteHostOperations {
