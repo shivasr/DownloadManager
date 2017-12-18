@@ -5,23 +5,23 @@ package com.app.downloader.transfer;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
 
 import com.app.downloader.api.DownloadTracker;
 import com.app.downloader.api.IFTPInterface;
 import com.app.downloader.api.exception.DownloaderException;
-import com.app.downloader.api.impl.CustomTransferListener;
+import com.app.downloader.api.impl.FileTransferAdapter;
 import com.app.downloader.logger.Logger;
-import com.app.downloader.util.RemoteHostOperations;
 
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.PathComponents;
 import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.sftp.SFTPFileTransfer;
+import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.HostKeyVerifier;
+import net.schmizz.sshj.userauth.UserAuthException;
 import net.schmizz.sshj.userauth.keyprovider.PKCS8KeyFile;
 import net.schmizz.sshj.userauth.method.AuthPublickey;
 import net.schmizz.sshj.xfer.FileSystemFile;
@@ -39,7 +39,7 @@ import net.schmizz.sshj.xfer.FileSystemFile;
  * @author Shivakumar Ramannavar
  *
  */
-public class SecureFTPClient implements IFTPInterface {
+public class SecureFTPClient extends AbstractFTPClient  {
 
 	/**
 	 * DownloadTracker Interface
@@ -55,40 +55,46 @@ public class SecureFTPClient implements IFTPInterface {
 	/**
 	 * User name of the authorized user to login to the server.
 	 */
-	private String username;
+	protected String username;
 
 	/**
 	 * Password of the authorized user to login to the server.
 	 */
-	private String password;
+	protected String password;
 
 	/**
 	 * Location, on the local machine, of public key for the authorized user to
 	 * login to the server.
 	 */
-	private String pathToPublicKey;
+	protected String pathToPublicKey;
 
 	/**
 	 * Location, on the local machine, of PEM private key for the authorized user to
 	 * login to the server.
 	 */
-	private String pathToPEMKeyFile;
+	protected String pathToPEMKeyFile;
 
 	// Flags to denote authentication methodology
 	/**
 	 * Use User name/password to authenticate the user.
 	 */
-	private boolean useUserNamePwd = false;
+	protected boolean useUserNamePwd = false;
 	
 	/**
 	 * Use Public key to authenticate the user.
 	 */
-	private boolean usePublicKey = false;
+	protected boolean usePublicKey = false;
+	
+	
+	/**
+	 * Use Default Public key to authenticate the user.
+	 */
+	protected boolean useDefaultKey = false;
 	
 	/**
 	 * Use PEM Private key to authenticate the user.
 	 */
-	private boolean usePemKey = false;
+	protected boolean usePemKey = false;
 
 	/**
 	 * Constructor with host.
@@ -96,9 +102,7 @@ public class SecureFTPClient implements IFTPInterface {
 	 * @param host
 	 */
 	public SecureFTPClient(String host) {
-		super();
-		this.host = host;
-
+		super(host);
 	}
 
 	/**
@@ -126,6 +130,14 @@ public class SecureFTPClient implements IFTPInterface {
 		this.pathToPublicKey = pathToKey;
 		return true;
 	}
+	
+	@Override
+	public boolean loginWithKey(String username) {
+
+		this.useDefaultKey = true;
+		this.username = username;
+		return true;
+	}
 
 	@Override
 	public boolean loginWithPEMKey(String username, String keyFile) {
@@ -141,51 +153,13 @@ public class SecureFTPClient implements IFTPInterface {
 		final SSHClient ssh = new SSHClient();
 		FileSystemFile localFS = new FileSystemFile(localFile);
 		
-		Path path = null;
-		
 		try {
-			ssh.addHostKeyVerifier(new NullHostKeyVerifier());
-			ssh.connect(host);
+			// Authenticate User using client
+			authenticateUser(ssh);
 
-			if (usePublicKey) {
-				ssh.authPublickey(username, pathToPublicKey);
-			} else if (usePemKey) {
-				PKCS8KeyFile pemKeyFile = new PKCS8KeyFile();
-				pemKeyFile.init(new File(pathToPEMKeyFile));
-				ssh.auth(username, new AuthPublickey(pemKeyFile));
-			} else if (useUserNamePwd)
-				ssh.authPassword(username, password);
-			else
-				throw new DownloaderException(
-						"User not logged in. Please use one of login methods to login to the server.");
-
-			net.schmizz.sshj.connection.channel.direct.Session session;
-			session = ssh.startSession();
-			final SFTPClient sftp = ssh.newSFTPClient();
-			try {
-				
-				final PathComponents pathComponents = sftp.getSFTPEngine().getPathHelper().getComponents(remoteFile);
-				
-				path = localFS.getTargetFile(pathComponents.getName()).getFile().toPath();
-				
-				sftp.getFileTransfer().setTransferListener(new CustomTransferListener());
-				
-				long localFSAlotted = localFS.getFile().getFreeSpace();
-				FileAttributes attributes = sftp.stat(remoteFile);
-				long remoteFileSize = attributes.getSize();
-				
-				if(remoteFileSize >= localFSAlotted) {
-					throw new DownloaderException("Insufficient local storage space.");
-				}
-				
-				sftp.getFileTransfer().download(remoteFile, localFS);
-			} finally {
-				sftp.close();
-			}
+			// Download using client
+			downloadUsingClient(ssh, remoteFile, localFS);
 		} catch (Exception e) {
-			Logger.debug("Error while downloading. Clearing the file.", e);
-			if(downloadTracker != null)
-				downloadTracker.downloadFailed(path);
 			throw new DownloaderException(
 					"Issue with connection to the SFTP server.", e);
 		} finally {
@@ -198,6 +172,83 @@ public class SecureFTPClient implements IFTPInterface {
 
 		}
 
+	}
+
+	/**
+	 * Download Using client
+	 * @param ssh
+	 * @param remoteFile
+	 * @param localFS
+	 * @return
+	 * @throws ConnectionException
+	 * @throws TransportException
+	 * @throws IOException
+	 * @throws DownloaderException
+	 */
+	private void downloadUsingClient(final SSHClient ssh, String remoteFile, FileSystemFile localFS)
+			throws ConnectionException, TransportException, IOException, DownloaderException {
+		Path path = null;;
+		ssh.startSession();
+		final SFTPClient sftp = ssh.newSFTPClient();
+		try {
+			
+			// Step 1: Register Progress Listener
+			final PathComponents pathComponents = sftp.getSFTPEngine().getPathHelper().getComponents(remoteFile);
+			path = localFS.getTargetFile(pathComponents.getName()).getFile().toPath();
+			
+			sftp.getFileTransfer().setTransferListener(new FileTransferAdapter(downloadTracker));
+			
+			
+			// Step 2: Validate appropriate exists in the local.
+			long localFSAlotted = localFS.getFile().getFreeSpace();
+			FileAttributes attributes = sftp.stat(remoteFile);
+			long remoteFileSize = attributes.getSize();
+			
+			if(remoteFileSize >= localFSAlotted) {
+				throw new DownloaderException("Insufficient local storage space.");
+			}
+			
+			// Step 3: Download the remote file to the local.
+			sftp.getFileTransfer().download(remoteFile, localFS);
+		} catch(Exception e) {
+			Logger.debug("Error while downloading. Clearing the file.", e);
+			if(downloadTracker != null)
+				downloadTracker.downloadFailed(path);
+		} finally {
+			sftp.close();
+		}
+	}
+
+	/**
+	 * @param ssh
+	 * @throws IOException
+	 * @throws UserAuthException
+	 * @throws TransportException
+	 * @throws DownloaderException
+	 */
+	private void authenticateUser(final SSHClient ssh)
+			throws IOException, UserAuthException, TransportException, DownloaderException {
+		ssh.addHostKeyVerifier(new NullHostKeyVerifier());
+		
+		if(getPort() == -1)
+			ssh.connect(getHost());
+		else
+			ssh.connect(getHost(), getPort());
+		
+		if (usePublicKey) {
+			ssh.authPublickey(username, pathToPublicKey);
+		} else if (usePemKey) {
+			PKCS8KeyFile pemKeyFile = new PKCS8KeyFile();
+			pemKeyFile.init(new File(pathToPEMKeyFile));
+			ssh.auth(username, new AuthPublickey(pemKeyFile));
+		} else if (useUserNamePwd) {
+			ssh.authPassword(username, password);
+		} else if (useDefaultKey) {
+			ssh.authPublickey(username);
+		}
+		else
+			throw new DownloaderException(
+					"User not logged in. Please use one of login methods to login to the server.");
 	}
 
 	/**

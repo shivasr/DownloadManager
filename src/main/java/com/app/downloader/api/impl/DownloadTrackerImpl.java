@@ -28,13 +28,13 @@ public class DownloadTrackerImpl implements DownloadTracker {
 	}
 
 	@Override
-	public void beforeStartOfDownload(int size) {
+	public void beforeStartOfDownload(long size) {
 		Logger.debug("****** Start of Download **** ");
 
 	}
 
 	@Override
-	public void endOfDownload(int size) {
+	public void endOfDownload(long size) {
 		Logger.debug("****** End of Download **** ");
 	}
 
@@ -47,5 +47,10 @@ public class DownloadTrackerImpl implements DownloadTracker {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+	}
+
+	@Override
+	public void reportProgress(long transferred, long size, String name) {
+		Logger.debugLine(String.format("transferred %s %% of `%s`", ((transferred * 100) / size), name));
 	}
 }

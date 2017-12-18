@@ -3,7 +3,13 @@
  */
 package com.app.downloader;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import com.app.downloader.api.IFTPInterface;
+import com.app.downloader.logger.Logger;
 import com.app.downloader.transfer.SecureFTPClient;
 
 /**
@@ -13,14 +19,26 @@ import com.app.downloader.transfer.SecureFTPClient;
  *
  */
 public class FTPClientFactory {
+	
+	static Map<String, String> registry; 
+	
+	static {
+		registry = new HashMap<>();
+		registry.put("SFTP", "com.app.downloader.transfer.SecureFTPClient");
+		registry.put("FTP", "com.app.downloader.transfer.FileTransferClient");
+	
+	}
 
 	/**
 	 * 
 	 */
 	private FTPClientFactory() {
-		// TODO Auto-generated constructor stub
+		// Do Nothing
 	}
 	
+	public static void registerClients(String protocol, String fullyQualifiedClassName) {
+		registry.put(protocol, fullyQualifiedClassName);
+	}
 	/**
 	 * This method creates implementations of IFTPInterface used a a client for File Transfers based on protocol.
 	 * Tshi method also initializes the client with the host ot be connected.
@@ -31,16 +49,41 @@ public class FTPClientFactory {
 	 */
 	public static final IFTPInterface createFTPClient(String protocol, String host) {
 		
-		EnumProtocol enumProtocol = EnumProtocol.valueOf(protocol.toUpperCase());
+		String classNameToBeLoaded = registry.get(protocol.toUpperCase());
 		
-		switch (enumProtocol) {
-		case SFTP:
-			return new SecureFTPClient(host);
-
-		default:
-			break;
+		Optional.ofNullable(classNameToBeLoaded).orElseThrow(
+				() -> new UnsupportedOperationException(String.format("No client registered for the protocol: %s", protocol)));
+		
+		IFTPInterface iftpInterface =  null;
+		Class<?> myClass;
+		try {
+			myClass = Class.forName(classNameToBeLoaded);
+			iftpInterface = (IFTPInterface) myClass
+								.getConstructor(String.class)
+								.newInstance(host);
+		} catch (ClassNotFoundException e) {
+			throw new UnsupportedOperationException(String.format("Client class not in classpath for the protocol: %s", protocol));
+		} catch (InstantiationException e) {
+			throw new UnsupportedOperationException(String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage()));
+		} catch (IllegalAccessException e) {
+			String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage());
+			throw new UnsupportedOperationException(String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage()));
+		} catch (IllegalArgumentException e) {
+			String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage());
+			throw new UnsupportedOperationException(String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage()));
+		} catch (InvocationTargetException e) {
+			
+			String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage());
+			new UnsupportedOperationException(String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage()));
+		} catch (NoSuchMethodException e) {
+			String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage());
+			new UnsupportedOperationException(String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage()));
+		} catch (SecurityException e) {
+			String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage());
+			new UnsupportedOperationException(String.format("Unable to load class with name %s for the protocol: %s. Error: %s", classNameToBeLoaded, protocol, e.getMessage()));
 		}
-		return null;
+		
+		return iftpInterface;
 	}
 
 }

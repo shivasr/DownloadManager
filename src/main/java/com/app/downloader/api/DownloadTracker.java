@@ -10,11 +10,11 @@ import java.nio.file.Path;
  * @author shiva
  *
  */
-public interface DownloadTracker  {
+public interface DownloadTracker extends ProgressListener {
 	
-	public void beforeStartOfDownload(int size);
+	public void beforeStartOfDownload(long size);
 	
-	public void endOfDownload(int size);
+	public void endOfDownload(long size);
 	
 	public void downloadFailed(Path localFilePath);
 

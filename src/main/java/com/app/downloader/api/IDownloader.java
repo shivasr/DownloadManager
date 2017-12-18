@@ -3,6 +3,8 @@
  */
 package com.app.downloader.api;
 
+import com.app.downloader.api.exception.DownloaderException;
+
 /**
  * 
  * @author Shivakumar Ramannavar
@@ -15,7 +17,7 @@ public interface IDownloader {
 		int currentSize;
 	}
 
-	public int startDownload(String username, String source, String target);
+	public boolean startDownload(String source, String target) throws DownloaderException;
 
 	public DownloadStatus getProgress(int token);
 

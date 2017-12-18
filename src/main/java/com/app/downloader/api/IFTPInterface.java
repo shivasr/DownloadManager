@@ -11,6 +11,13 @@ import com.app.downloader.api.exception.DownloaderException;
 public interface IFTPInterface {
 	
 	/**
+	 * Override Default port.
+	 * 
+	 * @param downloadTracker
+	 */
+	public void overridePort(int port);
+	
+	/**
 	 * Register DownloadTracker Interface to let know the caller about events.
 	 * 
 	 * @param downloadTracker
@@ -18,32 +25,41 @@ public interface IFTPInterface {
 	public void registerDownloadTracker(DownloadTracker downloadTracker);
 	
 	/**
-	 * Login with public key to the remote server.
+	 * Method to set credentials with user and password.
 	 * 
-	 * @param username user name of the authorized user.
-	 * @param password password of the authorized user.
-	 * @return true if login is successfully.
+	 * @param username
+	 *            Username to login to the SFTP Server
+	 * @param password
+	 *            Password to login to the SFTP Server
+	 * @return
 	 */
 	public boolean login(String username, String password);
 	
 	/**
-	 * Login with public key to the remote server.
+	 * Method to set credentials with user and path to public key.
 	 * 
-	 * @param username user name of the authorized user.
-	 * @param pathToKey location to public key.
-	 * @return true if login is successfully.
+	 * @param username  Username to login to the Server
+	 * @param pathToKey Path to public key of the user.
+	 * @return true
 	 */
 	public boolean loginWithKey(String username, String pathToKey);
 	
 	/**
-	 * Login with PEM Private key to the remote server.
+	 * Method to set credentials with user.
 	 * 
-	 * @param username user name of the authorized user.
-	 * @param keyFile location to private key.
-	 * @return true if login is successfully.
+	 * @param username  Username to login to the Server
+	 * @return true
+	 */
+	public boolean loginWithKey(String username);
+
+	/**
+	 * Method to set credentials with user and path to PEM private key.
+	 * 
+	 * @param username  Username to login to the Server
+	 * @param pathToKey Path to PM private key of the user.
+	 * @return true
 	 */
 	public boolean loginWithPEMKey(String username, String keyFile);
-	
 	/**
 	 * Download file from remote location to local disk.
 	 * @param remoteFile path to the file in the remote server.
