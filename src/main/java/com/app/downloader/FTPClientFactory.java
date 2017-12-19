@@ -20,12 +20,12 @@ import com.app.downloader.transfer.SecureFTPClient;
  */
 public class FTPClientFactory {
 	
-	static Map<String, String> registry; 
+	private static Map<String, String> registry; 
 	
 	static {
-		registry = new HashMap<>();
-		registry.put("SFTP", "com.app.downloader.transfer.SecureFTPClient");
-		registry.put("FTP", "com.app.downloader.transfer.FileTransferClient");
+		setRegistry(new HashMap<>());
+		getRegistry().put("SFTP", "com.app.downloader.transfer.SecureFTPClient");
+		getRegistry().put("FTP", "com.app.downloader.transfer.FileTransferClient");
 	
 	}
 
@@ -37,7 +37,7 @@ public class FTPClientFactory {
 	}
 	
 	public static void registerClients(String protocol, String fullyQualifiedClassName) {
-		registry.put(protocol, fullyQualifiedClassName);
+		getRegistry().put(protocol, fullyQualifiedClassName);
 	}
 	/**
 	 * This method creates implementations of IFTPInterface used a a client for File Transfers based on protocol.
@@ -49,7 +49,7 @@ public class FTPClientFactory {
 	 */
 	public static final IFTPInterface createFTPClient(String protocol, String host) {
 		
-		String classNameToBeLoaded = registry.get(protocol.toUpperCase());
+		String classNameToBeLoaded = getRegistry().get(protocol.toUpperCase());
 		
 		Optional.ofNullable(classNameToBeLoaded).orElseThrow(
 				() -> new UnsupportedOperationException(String.format("No client registered for the protocol: %s", protocol)));
@@ -84,6 +84,14 @@ public class FTPClientFactory {
 		}
 		
 		return iftpInterface;
+	}
+
+	public static Map<String, String> getRegistry() {
+		return registry;
+	}
+
+	public static void setRegistry(Map<String, String> registry) {
+		FTPClientFactory.registry = registry;
 	}
 
 }

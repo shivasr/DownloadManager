@@ -61,9 +61,6 @@ public class RemoteHostOperations {
 			conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("HEAD");
 
-			String file = url.getFile();
-			System.out.println(file);
-			String filename = Paths.get(url.getPath()).getFileName().toString();
 			return new HttpFileAttributes(conn.getContentType(), conn.getContentLengthLong());
 		} catch (IOException e) {
 			throw new DownloaderException("Unable to check the size.", e);

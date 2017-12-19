@@ -29,13 +29,13 @@ public class DownloadTrackerImpl implements DownloadTracker {
 
 	@Override
 	public void beforeStartOfDownload(long size) {
-		Logger.debug("****** Start of Download **** ");
+		Logger.debug("Starting the download.* ");
 
 	}
 
 	@Override
 	public void endOfDownload(long size) {
-		Logger.debug("****** End of Download **** ");
+		Logger.infoLine("Download complete. ");
 	}
 
 	@Override
@@ -51,6 +51,6 @@ public class DownloadTrackerImpl implements DownloadTracker {
 
 	@Override
 	public void reportProgress(long transferred, long size, String name) {
-		Logger.debugLine(String.format("transferred %s %% of `%s`", ((transferred * 100) / size), name));
+		Logger.infoLine(String.format("transferred %s %% of `%s`", ((transferred * 100) / size), name));
 	}
 }
