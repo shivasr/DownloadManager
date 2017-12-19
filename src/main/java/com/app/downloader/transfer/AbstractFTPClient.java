@@ -23,28 +23,56 @@ public abstract class AbstractFTPClient
 	 * Host name of the SFTP Server.
 	 */
 	private String host;
-	
-	/**
-	 * Port of the FTP Service.
-	 */
-	private int port = -1;
 
 	// Credentials to login to the SFTP Server
 	/**
 	 * User name of the authorized user to login to the server.
 	 */
-	private String username;
+	protected String username;
 
 	/**
 	 * Password of the authorized user to login to the server.
 	 */
-	private String password;
-	
+	protected String password;
+
+	/**
+	 * Location, on the local machine, of public key for the authorized user to
+	 * login to the server.
+	 */
+	protected String pathToPublicKey;
+
+	/**
+	 * Location, on the local machine, of PEM private key for the authorized user to
+	 * login to the server.
+	 */
+	protected String pathToPEMKeyFile;
+
 	// Flags to denote authentication methodology
 	/**
 	 * Use User name/password to authenticate the user.
 	 */
-	private boolean useUserNamePwd = false;
+	protected boolean useUserNamePwd = false;
+	
+	/**
+	 * Use Public key to authenticate the user.
+	 */
+	protected boolean usePublicKey = false;
+	
+	
+	/**
+	 * Use Default Public key to authenticate the user.
+	 */
+	protected boolean useDefaultKey = false;
+	
+	/**
+	 * Use PEM Private key to authenticate the user.
+	 */
+	protected boolean usePemKey = false;
+	
+	/**
+	 * Port of the FTP Service.
+	 */
+	protected int port = -1;
 
 
 	/**

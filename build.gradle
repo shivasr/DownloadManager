@@ -18,12 +18,13 @@ buildscript {
 }
 
 jar {
-    baseName = 'gs-batch-processing'
+    baseName = 'download_manager'
     version =  '0.1.0'
 }
 
 repositories {
     mavenCentral()
+     jcenter()
 }
 
 sourceCompatibility = 1.8
@@ -40,5 +41,9 @@ dependencies {
 	
 	compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
     testCompile("junit:junit")
+     testCompile 'junit:junit:4.12'
+
+    // required if you want to use Mockito for unit tests
+    testCompile 'org.mockito:mockito-core:2.7.22'
     
 }
