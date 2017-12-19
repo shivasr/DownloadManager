@@ -29,10 +29,6 @@ import com.app.downloader.util.Utilities;
  */
 public class DownloadManager implements IDownloader {
 
-	private static final String PASSWORD = "PASSWORD";
-
-	private static final String ENV_USERNAME = "USERNAME";
-
 	private static final String OPTION_FILE = "file";
 
 	private static final String FTP = "ftp";
@@ -155,17 +151,6 @@ public class DownloadManager implements IDownloader {
 		return true;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.app.donwloader.transfer.IDownloader#getProgress(int)
-	 */
-	@Override
-	public DownloadStatus getProgress(int token) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	public String getPathToPEMPrivateKey() {
 		return pathToPEMPrivateKey;
 	}
@@ -215,7 +200,6 @@ public class DownloadManager implements IDownloader {
 		String password = null;
 		
 		String pathToPEMPrivateKey = null;
-		String pathToPublicKey = null;
 		
 		
 		// Sample to add handlers dynamically
@@ -255,7 +239,6 @@ public class DownloadManager implements IDownloader {
 				location = cmdLine.getOptionValue(OPTION_LOCATION);
 				System.setProperty(ENV_LOCATION, location);
 			} else {
-				String varName = ENV_LOCATION;
 				String varDescription = ENV_DOWNLOAD_LOCATION;
 				location = getValueFromUser(varDescription);
 				System.setProperty(ENV_LOCATION, location);

@@ -19,6 +19,4 @@ public interface IDownloader {
 
 	public boolean startDownload(String source, String target) throws DownloaderException;
 
-	public DownloadStatus getProgress(int token);
-
 }
