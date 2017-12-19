@@ -22,6 +22,10 @@ public class FTPClientFactory {
 	
 	private static Map<String, String> registry; 
 	
+	public static boolean testing = false;
+	
+	public static IFTPInterface mockFTPInterface;
+	
 	static {
 		setRegistry(new HashMap<>());
 		getRegistry().put("SFTP", "com.app.downloader.transfer.SecureFTPClient");
@@ -48,6 +52,9 @@ public class FTPClientFactory {
 	 * @return
 	 */
 	public static final IFTPInterface createFTPClient(String protocol, String host) {
+		
+		if(testing)
+			return mockFTPInterface;
 		
 		String classNameToBeLoaded = getRegistry().get(protocol.toUpperCase());
 		

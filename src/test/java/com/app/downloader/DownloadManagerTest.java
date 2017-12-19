@@ -111,7 +111,11 @@ public class DownloadManagerTest {
 		
 		IFTPInterface iftpInterface = mock(IFTPInterface.class);
 		doNothing().when(iftpInterface).downloadFrom(source, target);
+		
+		FTPClientFactory.testing = true;
+		FTPClientFactory.mockFTPInterface = iftpInterface;
 		downloadManager.startDownload(source, target);
+		FTPClientFactory.testing = false;
 	}
 
 	/**
