@@ -16,6 +16,7 @@ import com.app.downloader.domain.HttpFileAttributes;
 import com.app.downloader.logger.Logger;
 import com.app.downloader.util.LocalHostOperations;
 import com.app.downloader.util.RemoteHostOperations;
+import com.app.downloader.util.Utilities;
 
 /**
  * @author shiva
@@ -41,7 +42,11 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 		String fullpath = "";
 		FileOutputStream fos = null;
 		try {
-
+			Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException("Source URL is null."));
+			Optional.ofNullable(localFile).orElseThrow(() -> new DownloaderException("Download location is null."));
+			
+			localFile = (Utilities.isNullOrEmpty(localFile))? "." : localFile;  
+			
 			String remoteFileName = new URL(remoteFile).getFile();
 			int firstIndexOfSlash = remoteFileName.indexOf("/");
 			remoteFileName = remoteFileName.substring(firstIndexOfSlash + 1)
@@ -52,6 +57,9 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 					() -> new DownloaderException("Mallformed remote URL %s, it does not include file name"));
 
 			fullpath = localFile + "/" + remoteFileName;
+			
+			LocalHostOperations.checkTargetFileCreation(fullpath);
+			
 			fos = new FileOutputStream(fullpath);
 
 			// Step 1: Validate appropriate exists in the local.
@@ -63,8 +71,6 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 				throw new DownloaderException("Insufficient local storage space.");
 			}
 
-			LocalHostOperations.checkTargetFileCreation(fullpath);
-
 			if (downloadTracker != null)
 				downloadTracker.beforeStartOfDownload(attr.getSize());
 
@@ -74,6 +80,7 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 			Logger.debug("\nError while downloading. Clearing the file.", e);
 			if (downloadTracker != null)
 				downloadTracker.downloadFailed(new File(fullpath).toPath());
+			throw new DownloaderException(e.getMessage(), e);
 		} finally {
 			try {
 				if(fos != null) {

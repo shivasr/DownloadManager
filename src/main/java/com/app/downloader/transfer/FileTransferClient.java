@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.SocketException;
+import java.util.Optional;
 
 import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.ftp.FTP;
@@ -18,6 +19,7 @@ import org.apache.commons.net.ftp.FTPReply;
 import com.app.downloader.api.exception.DownloaderException;
 import com.app.downloader.logger.Logger;
 import com.app.downloader.util.LocalHostOperations;
+import com.app.downloader.util.Utilities;
 
 /**
  * @author shiva
@@ -32,6 +34,7 @@ public class FileTransferClient extends AbstractFTPClient {
 	 */
 	public FileTransferClient(String host) {
 		super(host);
+		ftp = new FTPClient();
 	}
 
 	/*
@@ -43,8 +46,12 @@ public class FileTransferClient extends AbstractFTPClient {
 	@Override
 	public void downloadFrom(String remoteFile, String localFile) throws DownloaderException {
 
+		Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException("Source URL is null."));
+		Optional.ofNullable(localFile).orElseThrow(() -> new DownloaderException("Download location is null."));
+		
+		localFile = (Utilities.isNullOrEmpty(localFile))? "." : localFile;  
+		
 		String fullpath = "";
-		ftp = new FTPClient();
 		ftp.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));
 		int reply = 0;
 		try {
@@ -75,11 +82,20 @@ public class FileTransferClient extends AbstractFTPClient {
 			
 			// Step 2: Download the remote file to the local.
 			this.ftp.retrieveFile(remoteFile, fos);
+			
 		} catch (IOException e) {
 			Logger.debug("Error while downloading. Clearing the file.", e);
 			if (downloadTracker != null)
 				downloadTracker.downloadFailed(new File(fullpath).toPath());
 			throw new DownloaderException("Error while downloading. Clearing the file.", e);
 		}
+	}
+
+	public FTPClient getFtp() {
+		return ftp;
+	}
+
+	public void setFtp(FTPClient ftp) {
+		this.ftp = ftp;
 	}
 }

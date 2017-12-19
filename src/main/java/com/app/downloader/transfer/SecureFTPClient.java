@@ -7,12 +7,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.PublicKey;
+import java.util.Optional;
 
 import com.app.downloader.api.DownloadTracker;
-import com.app.downloader.api.IFTPInterface;
 import com.app.downloader.api.exception.DownloaderException;
 import com.app.downloader.api.impl.FileTransferAdapter;
 import com.app.downloader.logger.Logger;
+import com.app.downloader.util.Utilities;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.ConnectionException;
@@ -41,60 +42,7 @@ import net.schmizz.sshj.xfer.FileSystemFile;
  */
 public class SecureFTPClient extends AbstractFTPClient  {
 
-	/**
-	 * DownloadTracker Interface
-	 */
-	DownloadTracker downloadTracker;
-	
-	/**
-	 * Host name of the SFTP Server.
-	 */
-	private String host;
-
-	// Credentials to login to the SFTP Server
-	/**
-	 * User name of the authorized user to login to the server.
-	 */
-	protected String username;
-
-	/**
-	 * Password of the authorized user to login to the server.
-	 */
-	protected String password;
-
-	/**
-	 * Location, on the local machine, of public key for the authorized user to
-	 * login to the server.
-	 */
-	protected String pathToPublicKey;
-
-	/**
-	 * Location, on the local machine, of PEM private key for the authorized user to
-	 * login to the server.
-	 */
-	protected String pathToPEMKeyFile;
-
-	// Flags to denote authentication methodology
-	/**
-	 * Use User name/password to authenticate the user.
-	 */
-	protected boolean useUserNamePwd = false;
-	
-	/**
-	 * Use Public key to authenticate the user.
-	 */
-	protected boolean usePublicKey = false;
-	
-	
-	/**
-	 * Use Default Public key to authenticate the user.
-	 */
-	protected boolean useDefaultKey = false;
-	
-	/**
-	 * Use PEM Private key to authenticate the user.
-	 */
-	protected boolean usePemKey = false;
+	private SSHClient ssh;
 
 	/**
 	 * Constructor with host.
@@ -116,6 +64,10 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	 */
 	@Override
 	public boolean login(String username, String password) {
+		
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
+		Optional.ofNullable(password).orElseThrow(() -> new IllegalArgumentException("Password is empty."));
+		
 		this.username = username;
 		this.password = password;
 		this.useUserNamePwd = true;
@@ -125,6 +77,8 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	@Override
 	public boolean loginWithKey(String username, String pathToKey) {
 
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
+		Optional.ofNullable(pathToKey).orElseThrow(() -> new IllegalArgumentException("Path to public key is empty."));
 		this.usePublicKey = true;
 		this.username = username;
 		this.pathToPublicKey = pathToKey;
@@ -133,7 +87,7 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	
 	@Override
 	public boolean loginWithKey(String username) {
-
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
 		this.useDefaultKey = true;
 		this.username = username;
 		return true;
@@ -141,6 +95,9 @@ public class SecureFTPClient extends AbstractFTPClient  {
 
 	@Override
 	public boolean loginWithPEMKey(String username, String keyFile) {
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
+		Optional.ofNullable(keyFile).orElseThrow(() -> new IllegalArgumentException("Path to PEM private key is empty."));
+		
 		this.username = username;
 		this.usePemKey = true;
 		this.pathToPEMKeyFile = keyFile;
@@ -148,10 +105,17 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	}
 
 	@Override
-	public void downloadFrom(String remoteFile, String localFile) throws DownloaderException {
-
-		final SSHClient ssh = new SSHClient();
-		FileSystemFile localFS = new FileSystemFile(localFile);
+	public void downloadFrom(String remoteFile, String downloadLocation) throws DownloaderException {
+		
+		Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException("Source URL is null."));
+		Optional.ofNullable(downloadLocation).orElseThrow(() -> new DownloaderException("Download location is null."));
+		
+		downloadLocation = (Utilities.isNullOrEmpty(downloadLocation))? "." : downloadLocation;  
+		
+		if(ssh == null)
+			ssh = new SSHClient();
+		
+		FileSystemFile localFS = new FileSystemFile(downloadLocation);
 		
 		try {
 			// Authenticate User using client
@@ -174,6 +138,14 @@ public class SecureFTPClient extends AbstractFTPClient  {
 
 	}
 
+	public SSHClient getSsh() {
+		return ssh;
+	}
+
+	public void setSsh(SSHClient ssh) {
+		this.ssh = ssh;
+	}
+
 	/**
 	 * Download Using client
 	 * @param ssh
@@ -187,7 +159,7 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	 */
 	private void downloadUsingClient(final SSHClient ssh, String remoteFile, FileSystemFile localFS)
 			throws ConnectionException, TransportException, IOException, DownloaderException {
-		Path path = null;;
+		Path path = null;
 		ssh.startSession();
 		final SFTPClient sftp = ssh.newSFTPClient();
 		try {
@@ -214,6 +186,7 @@ public class SecureFTPClient extends AbstractFTPClient  {
 			Logger.debug("Error while downloading. Clearing the file.", e);
 			if(downloadTracker != null)
 				downloadTracker.downloadFailed(path);
+			throw new DownloaderException(e.getMessage(), e);
 		} finally {
 			sftp.close();
 		}
