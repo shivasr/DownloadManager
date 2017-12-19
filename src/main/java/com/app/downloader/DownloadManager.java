@@ -5,6 +5,7 @@ package com.app.downloader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Optional;
 import java.util.Scanner;
 
 import org.apache.commons.cli.CommandLine;
@@ -27,6 +28,10 @@ import com.app.downloader.util.Utilities;
  *
  */
 public class DownloadManager implements IDownloader {
+
+	private static final String PASSWORD = "PASSWORD";
+
+	private static final String ENV_USERNAME = "USERNAME";
 
 	private static final String OPTION_FILE = "file";
 
@@ -80,7 +85,7 @@ public class DownloadManager implements IDownloader {
 		return this;
 	}
 
-	public DownloadManager buildDownloadManagerWithUserNamePwdd(String username, String pasword) {
+	public DownloadManager buildDownloadManagerWithUserNamePwd(String username, String pasword) {
 		this.username = (username == null) ? "" : username;
 		this.password = pasword;
 
@@ -96,8 +101,20 @@ public class DownloadManager implements IDownloader {
 	@Override
 	public boolean startDownload(String source, String target) throws DownloaderException {
 
+		Optional.ofNullable(source).orElseThrow(() -> new DownloaderException("Source URL is null."));
+		Optional.ofNullable(target).orElseThrow(() -> new DownloaderException("Download location is null."));
+		
 		int indexOfProtocolSeperator = source.indexOf(PROTOCOL_SEPERATOR);
+		
+		if(indexOfProtocolSeperator == -1)
+			throw new DownloaderException("Malformed URL value: " + source);
+		
 		String protocol = source.substring(0, indexOfProtocolSeperator);
+		
+		if(Utilities.isNullOrEmpty(protocol))
+			throw new DownloaderException("Malformed URL value: " + source + ". Protocol is not given.");
+		
+		
 		int beginningIndexOfHost = indexOfProtocolSeperator + 3;
 		String host = source.substring(beginningIndexOfHost, source.indexOf("/", beginningIndexOfHost));
 		String port = null;
@@ -110,7 +127,7 @@ public class DownloadManager implements IDownloader {
 		String rfile = source;
 
 		if (protocol.toUpperCase().contains("FTP"))
-			rfile = source.substring(source.indexOf('/', beginningIndexOfHost) + 1);
+			rfile = source.substring(source.indexOf('/', beginningIndexOfHost));
 
 		ftpInterface = FTPClientFactory.createFTPClient(protocol, host);
 		ftpInterface.registerDownloadTracker(new DownloadTrackerImpl(System.currentTimeMillis()));
@@ -131,7 +148,7 @@ public class DownloadManager implements IDownloader {
 			ftpInterface.login(username, password);
 
 		Logger.debugLine("Done.");
-		Logger.debugLine("Downloading the file: " + rfile + " to " + target);
+		Logger.infoLine("Downloading the file: " + rfile + " to " + target + ".");
 		ftpInterface.downloadFrom(rfile, target);
 		Logger.debugLine("Done.");
 
@@ -149,30 +166,61 @@ public class DownloadManager implements IDownloader {
 		return null;
 	}
 
+	public String getPathToPEMPrivateKey() {
+		return pathToPEMPrivateKey;
+	}
+
+	public void setPathToPEMPrivateKey(String pathToPEMPrivateKey) {
+		this.pathToPEMPrivateKey = pathToPEMPrivateKey;
+	}
+
+	public String getPathToPublicKey() {
+		return pathToPublicKey;
+	}
+
+	public void setPathToPublicKey(String pathToPublicKey) {
+		this.pathToPublicKey = pathToPublicKey;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public boolean isUseDefaultPublicKey() {
+		return useDefaultPublicKey;
+	}
+
+	public void setUseDefaultPublicKey(boolean useDefaultPublicKey) {
+		this.useDefaultPublicKey = useDefaultPublicKey;
+	}
+
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 
-		String username = "";
-		String password = "";
-		String pemPrivateKeyLocation = "";
-		String publicKeyLocation = "";
-		String usePEMPrivateKey = "";
-
-		// DownloadManager downloadManager = new DownloadManager()
-		// .buildDownloadManagerWithPEMKey("ec2-user", "/Users/shiva/shiva.pem");
-		// downloadManager.startDownload("sftp://ec2-34-227-108-143.compute-1.amazonaws.com/home/ec2-user/JobZtop.zip",
-		// "/Users/shiva/Downloads/");
-		// downloadManager.startDownload("ftp://demo.wftpserver.com/download/manual_en.pdf",
-		// "/Users/shiva/Downloads/");
+		String username = null;
+		String password = null;
+		
+		String pathToPEMPrivateKey = null;
+		String pathToPublicKey = null;
+		
+		
+		// Sample to add handlers dynamically
 		FTPClientFactory.registerClients("HTTP", "com.app.downloader.transfer.HTTPFileTransferClient");
 		FTPClientFactory.registerClients("HTTPS", "com.app.downloader.transfer.HTTPFileTransferClient");
-		// DownloadManager downloadManager = new
-		// DownloadManager().buildDownloadManagerWithUserNamePwdd("demo-user",
-		// "demo-user");
-		// downloadManager.startDownload("https://vignette.wikia.nocookie.net/geosworld/images/0/09/Toon_link.jpg",
-		// "/Users/shiva/Downloads/");
 
 		Option helpOption = Option.builder("h").longOpt("help").required(false).desc("help").build();
 
@@ -209,70 +257,82 @@ public class DownloadManager implements IDownloader {
 			} else {
 				String varName = ENV_LOCATION;
 				String varDescription = ENV_DOWNLOAD_LOCATION;
-				location = getValueFromUser(varName, varDescription);
+				location = getValueFromUser(varDescription);
 				System.setProperty(ENV_LOCATION, location);
 			}
-
-			username = getValueFromUser("USERNAME", "user id to login into FTP servers.");
-			password = getValueFromUser("PASSWORD", "password to login into FTP servers.");
-
-			if (cmdLine.hasOption(OPTION_LOCATION)) {
-				location = cmdLine.getOptionValue(OPTION_LOCATION);
-				System.setProperty(ENV_LOCATION, location);
-			} else {
-				String varName = ENV_LOCATION;
-				String varDescription = ENV_DOWNLOAD_LOCATION;
-				location = getValueFromUser(varName, varDescription);
+			
+			if(!new File(file).canRead()) {
+				System.out.println("\nFailed. Error: The input file : `" + file + "` does not exists or not readeable.");
+				System.exit(-1);
 			}
+			
+			if(!new File(location).canWrite()) {
+				System.out.println("\nFailed. Error: The location: `" + location + "` is not writeable.");
+				System.exit(-1);
+			}
+
+			username = getValueFromUser("user id to login into FTP servers.");
+			password = getValueFromUser("password to login into FTP servers. Skip and press enter if you do want to use keys.");
+			
+			if(Utilities.isNullOrEmpty(password)) {
+				pathToPEMPrivateKey = getValueFromUser("Path to PEM private key to login into FTP servers. Skip and press enter if you do want to use default public keys.");
+			}
+				
 
 			Scanner scanner = null;
 			try {
 				scanner = new Scanner(new File(file));
-			} catch (FileNotFoundException e) {
-				System.out.println("Error: Unable to open file: " + file);
-			}
-			while (scanner.hasNextLine()) {
-				String url = scanner.nextLine();
+				
+				while (scanner.hasNextLine()) {
+					String url = scanner.nextLine();
 
-				executeDownloadTask(url, location, username, password);
+					executeDownloadTask(url, location, username, password, pathToPEMPrivateKey);
+				}
+			} catch (FileNotFoundException e) {
+				System.out.println("\nFailed. Error: Unable to open file: " + file + ".");
+				System.exit(-1);
+			} finally {
+				if(scanner != null)
+					scanner.close();
 			}
-			scanner.close();
+			
+			
 		} else {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("Missing file option. \n\nUSAGE: java -jar download_manager.jar", options);
 		}
 	}
 
-	private static void executeDownloadTask(String url, String location, String username, String password) {
+	private static void executeDownloadTask(String url, String location, String username, String password, String pathToPEMPrivateKey) {
 
 		try {
 			DownloadManager downloadManager = null;
 			if (url.startsWith(SFTP)) {
-				if (Utilities.isNullOrEmpty(password))
+				if (!Utilities.isNullOrEmpty(pathToPEMPrivateKey))
+					downloadManager = new DownloadManager().buildDownloadManagerWithPEMKey(username, pathToPEMPrivateKey);
+				else if (Utilities.isNullOrEmpty(password))
 					downloadManager = new DownloadManager().buildDownloadManagerWithDefaultKey(username);
 				else
-					downloadManager = new DownloadManager().buildDownloadManagerWithUserNamePwdd(username, password);
+					downloadManager = new DownloadManager().buildDownloadManagerWithUserNamePwd(username, password);
 			} else if (url.startsWith(FTP)) {
-				downloadManager = new DownloadManager().buildDownloadManagerWithUserNamePwdd(username, password);
+				downloadManager = new DownloadManager().buildDownloadManagerWithUserNamePwd(username, password);
 			} else if (url.startsWith(HTTP)) {
-				downloadManager = new DownloadManager().buildDownloadManagerWithUserNamePwdd(username, password);
+				downloadManager = new DownloadManager().buildDownloadManagerWithUserNamePwd(username, password);
 			}
 
 			downloadManager.startDownload(url, location);
+			System.out.println("\n\n" + String.format("Success. Download for the URL %s succeeded.", url) + "\n\n");
 		} catch (DownloaderException e) {
-			System.out.println(String.format("Download for the URL %s failed with error: %s", url, e.getMessage()));
+			System.out.println(
+					"\n\n" + String.format("Failed. Download for the URL %s failed with error: %s", url, e.getMessage())
+							+ "\n\n");
 		}
 	}
 
-	private static String getValueFromUser(String varName, String varDescription) {
-		String location;
-		location = System.getenv(varName);
-
-		if (Utilities.isNullOrEmpty(location)) {
-			System.out.println(String.format("Please enter the %s:\n", varDescription));
-			location = Keyin.inString();
-		}
-		return location;
+	private static String getValueFromUser(String varDescription) {
+		System.out.println(String.format("Please enter the %s:\n", varDescription));
+		String value = Keyin.inString();
+		return value;
 	}
 
 }
