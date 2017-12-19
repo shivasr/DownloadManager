@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Optional;
 
+import com.app.downloader.ErrorMessages;
 import com.app.downloader.api.exception.DownloaderException;
 import com.app.downloader.domain.HttpFileAttributes;
 import com.app.downloader.logger.Logger;
@@ -23,6 +24,10 @@ import com.app.downloader.util.Utilities;
  *
  */
 public class HTTPFileTransferClient extends AbstractFTPClient {
+
+	private static final String COLON = ":";
+	private static final String HYPHEN = "_";
+	private static final String SLASH = "/";
 
 	/**
 	 * @param host
@@ -42,21 +47,21 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 		String fullpath = "";
 		FileOutputStream fos = null;
 		try {
-			Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException("Source URL is null."));
-			Optional.ofNullable(localFile).orElseThrow(() -> new DownloaderException("Download location is null."));
+			Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException(ErrorMessages.SOURCE_URL_IS_NULL));
+			Optional.ofNullable(localFile).orElseThrow(() -> new DownloaderException(ErrorMessages.ERROR_DOWNLOAD_LOCATION_IS_NULL));
 			
 			localFile = (Utilities.isNullOrEmpty(localFile))? "." : localFile;  
 			
 			String remoteFileName = new URL(remoteFile).getFile();
-			int firstIndexOfSlash = remoteFileName.indexOf("/");
+			int firstIndexOfSlash = remoteFileName.indexOf(SLASH);
 			remoteFileName = remoteFileName.substring(firstIndexOfSlash + 1)
-							.replaceAll("/", "_")
-							.replaceAll(":", "_");
+							.replaceAll(SLASH, HYPHEN)
+							.replaceAll(COLON, HYPHEN);
 
 			Optional.ofNullable(remoteFileName).orElseThrow(
-					() -> new DownloaderException("Mallformed remote URL %s, it does not include file name"));
+					() -> new DownloaderException(ErrorMessages.MALLFORMED_REMOTE_URL_FILE_NAME));
 
-			fullpath = localFile + "/" + remoteFileName;
+			fullpath = localFile + SLASH + remoteFileName;
 			
 			LocalHostOperations.checkTargetFileCreation(fullpath);
 			
@@ -68,7 +73,7 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 			
 			long localFSAlotted = new File(localFile).getFreeSpace();
 			if (attr.getSize() >= localFSAlotted) {
-				throw new DownloaderException("Insufficient local storage space.");
+				throw new DownloaderException(ErrorMessages.INSUFFICIENT_LOCAL_STORAGE_SPACE);
 			}
 
 			if (downloadTracker != null)
@@ -77,7 +82,7 @@ public class HTTPFileTransferClient extends AbstractFTPClient {
 			// Step 2: Download the remote file to the local.
 			downloadUsingStream(remoteFile, fullpath);
 		} catch (IOException e) {
-			Logger.debug("\nError while downloading. Clearing the file.", e);
+			Logger.debug(ErrorMessages.MESSAGE_ERROR_WHILE_DOWNLOADING, e);
 			if (downloadTracker != null)
 				downloadTracker.downloadFailed(new File(fullpath).toPath());
 			throw new DownloaderException(e.getMessage(), e);

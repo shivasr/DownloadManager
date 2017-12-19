@@ -13,9 +13,8 @@ import java.util.Optional;
 import org.apache.commons.net.PrintCommandListener;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPReply;
 
+import com.app.downloader.ErrorMessages;
 import com.app.downloader.api.exception.DownloaderException;
 import com.app.downloader.logger.Logger;
 import com.app.downloader.util.LocalHostOperations;
@@ -27,6 +26,7 @@ import com.app.downloader.util.Utilities;
  */
 public class FileTransferClient extends AbstractFTPClient {
 
+	
 	FTPClient ftp = null;
 	
 	/**
@@ -46,14 +46,13 @@ public class FileTransferClient extends AbstractFTPClient {
 	@Override
 	public void downloadFrom(String remoteFile, String localFile) throws DownloaderException {
 
-		Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException("Source URL is null."));
-		Optional.ofNullable(localFile).orElseThrow(() -> new DownloaderException("Download location is null."));
+		Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException(ErrorMessages.SOURCE_URL_IS_NULL));
+		Optional.ofNullable(localFile).orElseThrow(() -> new DownloaderException(ErrorMessages.ERROR_DOWNLOAD_LOCATION_IS_NULL));
 		
 		localFile = (Utilities.isNullOrEmpty(localFile))? "." : localFile;  
 		
 		String fullpath = "";
 		ftp.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));
-		int reply = 0;
 		try {
 			
 			if(getPort() != -1)
@@ -65,12 +64,10 @@ public class FileTransferClient extends AbstractFTPClient {
 			ftp.setFileType(FTP.BINARY_FILE_TYPE);
 			ftp.enterLocalPassiveMode();
 		} catch (SocketException e) {
-			throw new DownloaderException("Exception in connecting to FTP Server", e);
+			throw new DownloaderException(ErrorMessages.ERROR_CONNECTING_TO_FTP_SERVER, e);
 		} catch (IOException e) {
-			throw new DownloaderException("Exception in connecting to FTP Server", e);
+			throw new DownloaderException(ErrorMessages.ERROR_CONNECTING_TO_FTP_SERVER, e);
 		}
-		reply = ftp.getReplyCode();
-
 		try {
 
 			if(!localFile.endsWith("/"))

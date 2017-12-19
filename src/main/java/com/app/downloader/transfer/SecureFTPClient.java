@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.security.PublicKey;
 import java.util.Optional;
 
+import com.app.downloader.ErrorMessages;
 import com.app.downloader.api.DownloadTracker;
 import com.app.downloader.api.exception.DownloaderException;
 import com.app.downloader.api.impl.FileTransferAdapter;
@@ -65,8 +66,8 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	@Override
 	public boolean login(String username, String password) {
 		
-		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
-		Optional.ofNullable(password).orElseThrow(() -> new IllegalArgumentException("Password is empty."));
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_USERNAME_IS_EMPTY));
+		Optional.ofNullable(password).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_PASSWORD_IS_EMPTY));
 		
 		this.username = username;
 		this.password = password;
@@ -77,8 +78,8 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	@Override
 	public boolean loginWithKey(String username, String pathToKey) {
 
-		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
-		Optional.ofNullable(pathToKey).orElseThrow(() -> new IllegalArgumentException("Path to public key is empty."));
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_USERNAME_IS_EMPTY));
+		Optional.ofNullable(pathToKey).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_PATH_TO_PUBLIC_KEY_IS_EMPTY));
 		this.usePublicKey = true;
 		this.username = username;
 		this.pathToPublicKey = pathToKey;
@@ -87,7 +88,7 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	
 	@Override
 	public boolean loginWithKey(String username) {
-		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_USERNAME_IS_EMPTY));
 		this.useDefaultKey = true;
 		this.username = username;
 		return true;
@@ -95,8 +96,8 @@ public class SecureFTPClient extends AbstractFTPClient  {
 
 	@Override
 	public boolean loginWithPEMKey(String username, String keyFile) {
-		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException("Username is empty."));
-		Optional.ofNullable(keyFile).orElseThrow(() -> new IllegalArgumentException("Path to PEM private key is empty."));
+		Optional.ofNullable(username).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_USERNAME_IS_EMPTY));
+		Optional.ofNullable(keyFile).orElseThrow(() -> new IllegalArgumentException(ErrorMessages.ERROR_PATH_TO_PEM_PRIVATE_KEY_IS_EMPTY));
 		
 		this.username = username;
 		this.usePemKey = true;
@@ -107,8 +108,8 @@ public class SecureFTPClient extends AbstractFTPClient  {
 	@Override
 	public void downloadFrom(String remoteFile, String downloadLocation) throws DownloaderException {
 		
-		Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException("Source URL is null."));
-		Optional.ofNullable(downloadLocation).orElseThrow(() -> new DownloaderException("Download location is null."));
+		Optional.ofNullable(remoteFile).orElseThrow(() -> new DownloaderException(ErrorMessages.SOURCE_URL_IS_NULL));
+		Optional.ofNullable(downloadLocation).orElseThrow(() -> new DownloaderException(ErrorMessages.ERROR_DOWNLOAD_LOCATION_IS_NULL));
 		
 		downloadLocation = (Utilities.isNullOrEmpty(downloadLocation))? "." : downloadLocation;  
 		
@@ -125,7 +126,7 @@ public class SecureFTPClient extends AbstractFTPClient  {
 			downloadUsingClient(ssh, remoteFile, localFS);
 		} catch (Exception e) {
 			throw new DownloaderException(
-					"Issue with connection to the SFTP server.", e);
+					ErrorMessages.ISSUE_WITH_CONNECTION, e);
 		} finally {
 			try {
 				ssh.disconnect();
@@ -177,13 +178,13 @@ public class SecureFTPClient extends AbstractFTPClient  {
 			long remoteFileSize = attributes.getSize();
 			
 			if(remoteFileSize >= localFSAlotted) {
-				throw new DownloaderException("Insufficient local storage space.");
+				throw new DownloaderException(ErrorMessages.INSUFFICIENT_LOCAL_STORAGE_SPACE);
 			}
 			
 			// Step 3: Download the remote file to the local.
 			sftp.getFileTransfer().download(remoteFile, localFS);
 		} catch(Exception e) {
-			Logger.debug("Error while downloading. Clearing the file.", e);
+			Logger.debug(ErrorMessages.MESSAGE_ERROR_WHILE_DOWNLOADING, e);
 			if(downloadTracker != null)
 				downloadTracker.downloadFailed(path);
 			throw new DownloaderException(e.getMessage(), e);
