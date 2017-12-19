@@ -1,5 +1,9 @@
 package com.app.downloader;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 //**********************************************************
 	//**********************************************************
 	//Program: Keyin
@@ -114,4 +118,42 @@ package com.app.downloader;
 	      }
 	    }
 	  }
+	  
+	  public static String inSecretString() {
+		  
+	        String password = "";
+	        ConsoleEraser consoleEraser = new ConsoleEraser();
+	        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+	        consoleEraser.start();
+	        try {
+	            password = in.readLine();
+	        }
+	        catch (IOException e){
+	            System.out.println("Error trying to read your password!");
+	            System.exit(1);
+	        }
+	 
+	        consoleEraser.halt();
+	        System.out.print("\b");
+	 
+	        return password;
+	    }
+	  
+	  private static class ConsoleEraser extends Thread {
+	        private boolean running = true;
+	        public void run() {
+	            while (running) {
+	                System.out.print("\b ");
+	                try {
+	                    Thread.currentThread().sleep(1);
+	                }
+	                catch(InterruptedException e) {
+	                    break;
+	                }
+	            }
+	        }
+	        public synchronized void halt() {
+	            running = false;
+	        }
+	    }
 	}

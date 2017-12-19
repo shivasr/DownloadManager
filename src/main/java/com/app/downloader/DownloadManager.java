@@ -334,5 +334,4 @@ public class DownloadManager implements IDownloader {
 		String value = Keyin.inString();
 		return value;
 	}
-
 }
