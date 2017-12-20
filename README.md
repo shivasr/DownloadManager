@@ -13,5 +13,5 @@ Instructions to build:
 4. Once built use ./build/libs/download_manager_0.1.0.jar for execution.
 
 Command to execute the utility:
-java -jar download_manager-0.1.0.jar -f <Path to file containing URLs> -loc <Download Location>
+java -jar download_manager-0.1.0.jar -f {Path to file containing URLs} -loc {Download Location}
 
